@@ -1,4 +1,4 @@
-# Priya — Multilingual Voice Collections Agent
+# Priya - Multilingual Voice Collections Agent
 
 **A voice bot + agentic workflow (A+B) for BFSI loan collections, powered end-to-end by Sarvam AI. Built 100% no-code in n8n.**
 
@@ -58,7 +58,7 @@ flowchart LR
 
 ---
 
-## 🔌 Sarvam APIs used — and why
+## 🔌 Sarvam APIs used - and why
 
 | API | Model | Role in the solution | Why it matters |
 |---|---|---|---|
