@@ -1,0 +1,583 @@
+{
+  "name": "Priya - Multilingual Collections Voice Agent (Sarvam AI × Sunrise Finance PoC)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "                    \n\n      📞 CALL SETUP - CRM record drives language & script",
+        "height": 336,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        -496
+      ],
+      "id": "0aba3664-3bba-41ac-ba3b-8da3676095f0",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sarvam.ai/text-to-speech",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"text\": $json.opening_text,\n  \"target_language_code\": $json.preferred_language,\n  \"speaker\": \"anushka\",\n  \"model\": \"bulbul:v2\"\n})}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -864,
+        -384
+      ],
+      "id": "ed43466e-e8a6-458a-9c3e-91847ac8c378",
+      "name": "2. Sarvam TTS - Priya Opens Call (Bulbul)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vMIYgEdPhIUfTgi3",
+          "name": "Sarvam API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "audios[0]",
+        "binaryPropertyName": "00_priya_opening.wav",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        -384
+      ],
+      "id": "743c55b7-79da-43cd-a396-b93ace01fac0",
+      "name": "3. Save Opening Audio"
+    },
+    {
+      "parameters": {
+        "url": "=https://drive.google.com/uc?export=download&id={{ $('1. CRM - Fetch Customer Record').item.json.drive_file_id }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -368,
+        -384
+      ],
+      "id": "af018541-5c7c-4bbd-ba2b-aec5f3409a1e",
+      "name": "4. Customer Voice In (Telephony Sim)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sarvam.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"sarvam-105b\",\n\"max_tokens\": 4096,\n  \"temperature\": 0.3,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": `You are Priya, a polite, professional loan collections agent at Sunrise Finance, an NBFC. You are on an outbound EMI reminder call.\n\nCUSTOMER & LOAN CONTEXT (for this call):\n- Customer: ${$('1. CRM - Fetch Customer Record').item.json.customer_name}\n- Loan: ${$('1. CRM - Fetch Customer Record').item.json.loan_id}\n- EMI due: Rs. ${$('1. CRM - Fetch Customer Record').item.json.emi_amount}, currently overdue\n\nCALL CONTEXT: You have already opened the call by saying: \"${$('1. CRM - Fetch Customer Record').item.json.opening_text}\". The customer's reply to this is what you receive as input. Continue the call naturally from there.\n\nLANGUAGE RULES (most important):\n- Detect the customer's language from their message and reply in the SAME language and mixing style.\n- Hindi or Hinglish input: reply in natural Hindi-English code-mix. Write Hindi in Devanagari script; keep common English words (EMI, payment, link, due date) in English.\n- Tamil or Tanglish input: reply in natural Tamil-English code-mix. Write Tamil in Tamil script; keep English words in English.\n- English input: reply in simple, warm Indian English.\n- Never switch languages unless the customer does. If the customer switches mid-call, follow them immediately.\n\nVOICE STYLE (your reply is converted to speech):\n- Maximum 2-3 short sentences per turn. One question at a time.\n- Plain text only: no lists, no markdown, no emojis, no stage directions.\n- Say amounts naturally in the customer's language.\n\nSCENARIO PLAYBOOK:\n1. Willing to pay now: thank them, confirm you are sending a secure payment link by SMS, confirm the amount.\n2. Will pay later: empathize, negotiate a specific date within the next 7 days, confirm the commitment back clearly.\n3. Financial hardship: show genuine empathy first, offer a part-payment or restructuring discussion, offer a callback from a senior officer.\n4. Dispute (says already paid / wrong amount): apologize, do not argue, note their claim, promise verification with a callback within 24 hours.\n5. Wrong person / customer unavailable: apologize politely, ask for a good time to call back. NEVER disclose loan details to anyone other than the customer.\n6. Angry, refuses, or asks to stop calls: stay calm and courteous, never threaten or pressure, offer a human agent, honor any request to stop calls.\n\nCOMPLIANCE (non-negotiable):\n- Never threaten legal action, never use pressure tactics, never harass. Follow RBI Fair Practices Code tone at all times.\n- Always offer a human agent if asked.\n- If the customer asks something outside this loan, politely say you will have the right team reach out.\n\nOUTPUT: Reply with ONLY Priya's next spoken line. No labels, no explanations, nothing else.`\n    },\n    {\n      \"role\": \"user\",\n      \"content\": `Customer said (detected language: ${$json.language_code}): ${$json.transcript}`\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        64,
+        -384
+      ],
+      "id": "e2fc95bb-1dd8-4f54-96b9-29aa4efd2f67",
+      "name": "6. Sarvam LLM - Priya Reply (sarvam-105b)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vMIYgEdPhIUfTgi3",
+          "name": "Sarvam API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sarvam.ai/text-to-speech",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"text\": $json.choices[0].message.content,\n  \"target_language_code\": $('5. Sarvam STT - Saarika (Transcribe, CRM-driven lang)').item.json.language_code,\n  \"speaker\": \"anushka\",\n  \"model\": \"bulbul:v2\"\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        320,
+        -384
+      ],
+      "id": "d919772b-3ce9-49a4-81ec-0a8e63fb07d3",
+      "name": "7a. Sarvam TTS - Speak Reply (Bulbul)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vMIYgEdPhIUfTgi3",
+          "name": "Sarvam API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "audios[0]",
+        "binaryPropertyName": "priya_reply.wav",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        -384
+      ],
+      "id": "8a2e004e-cad8-4361-a31d-e5e2ff29b769",
+      "name": "7b. Save Reply Audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sarvam.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "=json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({\n  \"model\": \"sarvam-105b\",\n  \"max_tokens\": 4096,\n  \"temperature\": 0,\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"You are a call QA analyst for an NBFC collections team. Analyze the call exchange and return ONLY a raw JSON object. No markdown, no code fences, no explanation. Keys: language (BCP-47 code like hi-IN or ta-IN), scenario (one of: pay_now, promise_to_pay, hardship, dispute, wrong_person, refusal), disposition (short phrase), promise_to_pay_date (YYYY-MM-DD or null; if the customer states an explicit calendar date, use it verbatim; only compute from relative phrases like 'next Friday' using today's date when no explicit date is given), amount_committed (number or null), escalation_required (true or false), customer_sentiment (positive, neutral, or negative), summary_english (max 2 sentences).\" },\n    { \"role\": \"user\", \"content\": `Today's date: ${$now.toFormat('yyyy-MM-dd')}\nCustomer (${$('5. Sarvam STT - Saarika (Transcribe, CRM-driven lang)').item.json.language_code}): ${$('5. Sarvam STT - Saarika (Transcribe, CRM-driven lang)').item.json.transcript}\nAgent Priya: ${$json.choices[0].message.content}` }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        320,
+        -32
+      ],
+      "id": "63bb82ed-d5d1-4f8f-b622-8d44970e548c",
+      "name": "8a. Sarvam LLM - Post-Call Analyzer",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vMIYgEdPhIUfTgi3",
+          "name": "Sarvam API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.choices[0].message.content.replace(/```json|```/g, '').trim();\nreturn [{ json: JSON.parse(raw) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -32
+      ],
+      "id": "05b33b95-71f9-4e94-8069-bd20c0baefd9",
+      "name": "8b. Parse Call Analysis"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bff4d5bc-39fe-4d01-b5db-edaec503a62f",
+              "name": "customer_name",
+              "value": "Muthu",
+              "type": "string"
+            },
+            {
+              "id": "1d977a70-e84f-42ce-b723-85ff7103da91",
+              "name": "=loan_id",
+              "value": "PL-4322",
+              "type": "string"
+            },
+            {
+              "id": "f6569f94-18da-4547-b4f8-1810f0ae88bf",
+              "name": "emi_amount",
+              "value": "9000",
+              "type": "string"
+            },
+            {
+              "id": "07f8f187-6def-4eaf-8c72-6dc676b49b32",
+              "name": "preferred_language",
+              "value": "ta-IN",
+              "type": "string"
+            },
+            {
+              "id": "f5bc6243-1d27-4524-9407-f2421ef54021",
+              "name": "opening_text",
+              "value": "Vanakkam! Naan Priya pesuren, Sunrise Finance-lerndhu. Naan pesuvadhu Muthu sir kooda thaane? Sir, unga personal loan EMI, onbadhaayiram rubai, due date mudinjhum innum receive aagala. Payment pathi konjam pesalama?",
+              "type": "string"
+            },
+            {
+              "id": "6ee195ab-3d76-43f2-a64e-66d1b8711f87",
+              "name": "drive_file_id",
+              "value": "1EP45YrffY30CGh60WF1OcQS79Towpsgb",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1088,
+        -384
+      ],
+      "id": "72cd3469-ee43-4979-b13c-7ee19e9268ef",
+      "name": "1. CRM - Fetch Customer Record"
+    },
+    {
+      "parameters": {
+        "content": "                               \n\n                                 🗣 VOICE CONVERSATION - STT → LLM → TTS, language-adaptive",
+        "height": 336,
+        "width": 1200
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -496
+      ],
+      "id": "b930285e-75fe-4852-9149-f081bd76eedc",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1NhDuriRf7-jv3Ee5B0QHxacKATQ5PlheAR0gZ-n_x7Q",
+          "mode": "list",
+          "cachedResultName": "Sunrise_Collections_CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NhDuriRf7-jv3Ee5B0QHxacKATQ5PlheAR0gZ-n_x7Q/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NhDuriRf7-jv3Ee5B0QHxacKATQ5PlheAR0gZ-n_x7Q/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Language": "={{ $json.language }}",
+            "Scenario": "={{ $json.scenario }}",
+            "Summary": "={{ $json.summary_english }}",
+            "Customer": "={{ $('1. CRM - Fetch Customer Record').item.json.customer_name }}",
+            "Loan": "={{ $('1. CRM - Fetch Customer Record').item.json.loan_id }}",
+            "Disposition": "={{ $json.disposition }}",
+            "PTP_Date": "={{ $json.promise_to_pay_date }}",
+            "Amount": "={{ $json.amount_committed }}",
+            "Escalation": "={{ $json.escalation_required }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer",
+              "displayName": "Customer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Loan",
+              "displayName": "Loan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Language",
+              "displayName": "Language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Scenario",
+              "displayName": "Scenario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Disposition",
+              "displayName": "Disposition",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PTP_Date",
+              "displayName": "PTP_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Escalation",
+              "displayName": "Escalation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        -32
+      ],
+      "id": "30c3fd85-d3e8-46e2-a3ae-b00cdd3b4600",
+      "name": "9. CRM Update - Log Disposition (Sheets)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "oLl1T5y7zirlK5Gk",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "                       🤖 AGENTIC POST-CALL — analyze → update CRM autonomously",
+        "height": 304,
+        "width": 928
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -128
+      ],
+      "id": "b9887c23-b0e7-4987-826f-c620b2d51488",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sarvam.ai/speech-to-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "saarika:v2.5"
+            },
+            {
+              "name": "=language_code",
+              "value": "={{ $('1. CRM - Fetch Customer Record').item.json.preferred_language }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -160,
+        -384
+      ],
+      "id": "a9f881f7-c390-4d44-bb37-a82ae315c9d1",
+      "name": "5. Sarvam STT - Saarika (Transcribe, CRM-driven lang)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vMIYgEdPhIUfTgi3",
+          "name": "Sarvam API Key"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "2. Sarvam TTS - Priya Opens Call (Bulbul)": {
+      "main": [
+        [
+          {
+            "node": "3. Save Opening Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Save Opening Audio": {
+      "main": [
+        [
+          {
+            "node": "4. Customer Voice In (Telephony Sim)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Customer Voice In (Telephony Sim)": {
+      "main": [
+        [
+          {
+            "node": "5. Sarvam STT - Saarika (Transcribe, CRM-driven lang)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Sarvam LLM - Priya Reply (sarvam-105b)": {
+      "main": [
+        [
+          {
+            "node": "7a. Sarvam TTS - Speak Reply (Bulbul)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "8a. Sarvam LLM - Post-Call Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7a. Sarvam TTS - Speak Reply (Bulbul)": {
+      "main": [
+        [
+          {
+            "node": "7b. Save Reply Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8a. Sarvam LLM - Post-Call Analyzer": {
+      "main": [
+        [
+          {
+            "node": "8b. Parse Call Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8b. Parse Call Analysis": {
+      "main": [
+        [
+          {
+            "node": "9. CRM Update - Log Disposition (Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. CRM - Fetch Customer Record": {
+      "main": [
+        [
+          {
+            "node": "2. Sarvam TTS - Priya Opens Call (Bulbul)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Sarvam STT - Saarika (Transcribe, CRM-driven lang)": {
+      "main": [
+        [
+          {
+            "node": "6. Sarvam LLM - Priya Reply (sarvam-105b)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "764ed630-ffcf-43c0-9a43-572bf12863c8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9097332e8af1b6dceabc2486c808ed45721d0af9f025a0c30428dc9d3d853824"
+  },
+  "nodeGroups": [],
+  "id": "D1TaFrSMe6taIafb",
+  "tags": []
+}
